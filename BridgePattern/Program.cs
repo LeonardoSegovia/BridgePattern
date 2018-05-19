@@ -1,14 +1,16 @@
 ﻿using System;
+using Autofac;
+using Autofac.Core;
 
 namespace BridgePattern
 {
 
-    interface IRenderer
+    public interface IRenderer
     {
         void RenderCircle(float radius);
     }
 
-    class VectorRenderer : IRenderer
+    public class VectorRenderer : IRenderer
     {
         public void RenderCircle(float radius)
         {
@@ -16,7 +18,7 @@ namespace BridgePattern
         }
     }
 
-    class RasterCircle : IRenderer
+    public class RasterCircle : IRenderer
     {
         public void RenderCircle(float radius)
         {
@@ -24,7 +26,7 @@ namespace BridgePattern
         }
     }
 
-    abstract class Shape
+    public abstract class Shape
     {
         protected IRenderer Renderer;
 
@@ -39,7 +41,7 @@ namespace BridgePattern
 
     }
 
-    class Circle:Shape
+    class Circle : Shape
     {
         private float _radius;
 
@@ -51,7 +53,7 @@ namespace BridgePattern
         public override void Draw()
         {
             Renderer.RenderCircle(_radius);
-    }
+        }
 
         public override void Resize(float factor)
         {
@@ -63,16 +65,24 @@ namespace BridgePattern
     {
         static void Main(string[] args)
         {
-            var render = new VectorRenderer();
 
-            var objShape = new Circle(render,4);
+            var containerBuilder = new ContainerBuilder();
 
-            objShape.Draw();
-            objShape.Resize(3);
-            objShape.Draw();
+            containerBuilder.RegisterType<VectorRenderer>().As<IRenderer>();
 
-            Console.ReadKey();
+            containerBuilder.Register((c, p) => new Circle(c.Resolve<IRenderer>(), p.Positional<float>(0)));
 
+            using (var buildedContainer = containerBuilder.Build())
+            {
+                var circleShape = buildedContainer.Resolve<Circle>(new PositionalParameter(0, 3.0f));
+
+
+                circleShape.Draw();
+                circleShape.Resize(3);
+                circleShape.Draw();
+
+                Console.ReadKey();
+            }
         }
     }
 }
